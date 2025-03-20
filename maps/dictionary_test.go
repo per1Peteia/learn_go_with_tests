@@ -65,6 +65,26 @@ func TestUpdate(t *testing.T) {
 	})
 }
 
+func TestDelete(t *testing.T) {
+	t.Run("good delete", func(t *testing.T) {
+		dict := Dictionary{"test": "this is a test"}
+		key := "test"
+		err := dict.Delete(key)
+		assertError(t, err, nil)
+
+		_, err = dict.Search(key)
+		assertError(t, err, ErrNotFound)
+	})
+
+	t.Run("bad delete - key does not exist", func(t *testing.T) {
+		dict := Dictionary{}
+		key := "test"
+		err := dict.Delete(key)
+		assertError(t, err, ErrKeyDoesNotExist)
+	})
+
+}
+
 func assertKey(t testing.TB, dict Dictionary, key, value string) {
 	t.Helper()
 	got, err := dict.Search(key)
