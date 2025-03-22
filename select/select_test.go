@@ -9,7 +9,7 @@ import (
 
 func makeDelayedServer(delay time.Duration) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(delay * time.Millisecond)
+		time.Sleep(delay)
 		w.WriteHeader(http.StatusOK)
 	}))
 }
@@ -26,7 +26,11 @@ func TestRacer(t *testing.T) {
 		fastURL := fastServer.URL
 
 		want := fastURL
-		got, _ := Racer(slowURL, fastURL)
+		got, err := Racer(slowURL, fastURL)
+
+		if err != nil {
+			t.Fatalf("did not expect an error but got one %v", err)
+		}
 
 		if got != want {
 			t.Errorf("got %q want %q", got, want)
@@ -34,16 +38,10 @@ func TestRacer(t *testing.T) {
 	})
 
 	t.Run("bad race - exceeds timeout", func(t *testing.T) {
-		slowServer := makeDelayedServer(11 * time.Second)
-		fastServer := makeDelayedServer(12 * time.Second)
+		server := makeDelayedServer(21 * time.Millisecond)
+		defer server.Close()
 
-		defer slowServer.Close()
-		defer fastServer.Close()
-
-		slowURL := slowServer.URL
-		fastURL := fastServer.URL
-
-		_, err := Racer(slowURL, fastURL)
+		_, err := ConfigurableRacer(server.URL, server.URL, 20*time.Millisecond)
 
 		if err == nil {
 			t.Errorf("wanted err but got nil")
