@@ -5,26 +5,26 @@ import "reflect"
 // a function walk(x interface{}, fn func(string)) which takes a struct x and calls fn for all strings fields found inside.
 func walk(x interface{}, fn func(in string)) {
 	val := getValue(x)
-	numberOfFieldValues := 0
-	var getField func(int) reflect.Value
+
+	walkValue := func(value reflect.Value) {
+		walk(value.Interface(), fn)
+	}
 
 	switch val.Kind() {
 	case reflect.Struct:
-		numberOfFieldValues = val.NumField()
-		getField = val.Field
+		for i := 0; i < val.NumField(); i++ {
+			walkValue(val.Field(i))
+		}
 	case reflect.Slice, reflect.Array:
-		numberOfFieldValues = val.Len()
-		getField = val.Index
+		for i := 0; i < val.Len(); i++ {
+			walkValue(val.Index(i))
+		}
 	case reflect.Map:
 		for _, key := range val.MapKeys() {
-			walk(val.MapIndex(key).Interface(), fn)
+			walkValue(val.MapIndex(key))
 		}
 	case reflect.String:
 		fn(val.String())
-	}
-
-	for i := 0; i < numberOfFieldValues; i++ {
-		walk(getField(i).Interface(), fn)
 	}
 }
 
