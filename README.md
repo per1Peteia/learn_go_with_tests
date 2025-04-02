@@ -7,3 +7,10 @@ Where 'work' is making the tests pass, 'right' is refactoring the code, and 'fas
 We should never try to 'make it fast' before the other two steps have been performed because
 
     Premature optimization is the root of all evil -- Donald Knuth
+
+
+____
+
+    Write tests until fear is transformed into boredom. -- Kent Beck
+
+____
