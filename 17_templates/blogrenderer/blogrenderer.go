@@ -1,12 +1,18 @@
 package blockrenderer
 
 import (
+	"embed"
 	"html/template"
 	"io"
+	"strings"
+
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/parser"
 )
 
-const (
-	postTemplate = `<h1>{{.Title}}</h1><p>{{.Description}}</p>Tags: <ul>{{range .Tags}}<li>{{.}}</li>{{end}}</ul>`
+var (
+	//go:embed "templates/*"
+	postTemplates embed.FS
 )
 
 type Post struct {
@@ -14,15 +20,51 @@ type Post struct {
 	Tags                     []string
 }
 
-func Render(w io.Writer, p Post) error {
-	templ, err := template.New("blog").Parse(postTemplate)
+type PostRenderer struct {
+	templ    *template.Template
+	mdParser *parser.Parser
+}
+
+func NewPostRenderer() (*PostRenderer, error) {
+	templ, err := template.ParseFS(postTemplates, "templates/*.gohtml")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := templ.Execute(w, p); err != nil {
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs
+	parser := parser.NewWithExtensions(extensions)
+
+	return &PostRenderer{templ: templ, mdParser: parser}, nil
+}
+
+func (r *PostRenderer) Render(w io.Writer, p Post) error {
+	if err := r.templ.ExecuteTemplate(w, "blog.gohtml", newPostVM(p, r)); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (p Post) SanitisedTitle() string {
+	return strings.ToLower(strings.Replace(p.Title, " ", "-", -1))
+}
+
+func (r *PostRenderer) RenderIndex(w io.Writer, ps []Post) error {
+	if err := r.templ.ExecuteTemplate(w, "index.gohtml", ps); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type PostViewModel struct {
+	Post
+	HTMLBody template.HTML
+}
+
+func newPostVM(p Post, r *PostRenderer) PostViewModel {
+	vm := PostViewModel{Post: p}
+	vm.HTMLBody = template.HTML(markdown.ToHTML([]byte(p.Body), r.mdParser, nil))
+
+	return vm
 }

@@ -2,11 +2,48 @@ package blockrenderer_test
 
 import (
 	"bytes"
-	br "github.com/per1Peteia/learn_go_with_tests/17_templates/blogrenderer"
+	"io"
 	"testing"
+
+	approvals "github.com/approvals/go-approval-tests"
+	br "github.com/per1Peteia/learn_go_with_tests/17_templates/blogrenderer"
 )
 
 func TestRenderer(t *testing.T) {
+	var aPost = br.Post{
+		Title:       "hello world",
+		Body:        "*this* is a **post** and a ![test](https://www.example.com/image.jpg))",
+		Description: "this is a description",
+		Tags:        []string{"go", "tdd"},
+	}
+
+	postRenderer, err := br.NewPostRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("converts a single post into HTML", func(t *testing.T) {
+		buf := bytes.Buffer{}
+		if err := postRenderer.Render(&buf, aPost); err != nil {
+			t.Fatal(err)
+		}
+
+		approvals.VerifyString(t, buf.String())
+	})
+
+	t.Run("renders an index of posts", func(t *testing.T) {
+		buf := bytes.Buffer{}
+		posts := []br.Post{{Title: "hello world 1"}, {Title: "hello world 2"}}
+
+		if err := postRenderer.RenderIndex(&buf, posts); err != nil {
+			t.Fatal(err)
+		}
+
+		approvals.VerifyString(t, buf.String())
+	})
+}
+
+func BenchmarkRender(b *testing.B) {
 	var aPost = br.Post{
 		Title:       "hello world",
 		Body:        "this is a post",
@@ -14,19 +51,13 @@ func TestRenderer(t *testing.T) {
 		Tags:        []string{"go", "tdd"},
 	}
 
-	t.Run("converts a single post into HTML", func(t *testing.T) {
-		buf := bytes.Buffer{}
-		err := br.Render(&buf, aPost)
+	postRenderer, err := br.NewPostRenderer()
+	if err != nil {
+		b.Fatal(err)
+	}
 
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		got := buf.String()
-		want := `<h1>hello world</h1><p>this is a description</p>Tags: <ul><li>go</li><li>tdd</li></ul>`
-
-		if got != want {
-			t.Errorf("got %s, want %s", got, want)
-		}
-	})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		postRenderer.Render(io.Discard, aPost)
+	}
 }
