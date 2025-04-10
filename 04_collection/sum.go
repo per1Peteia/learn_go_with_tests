@@ -18,7 +18,7 @@ func SumAllTails(numbers ...[]int) []int {
 	return Reduce(numbers, sumTail, []int{})
 }
 
-func Reduce[T any](iterable []T, f func(T, T) T, initialValue T) T {
+func Reduce[A, B any](iterable []A, f func(B, A) B, initialValue B) B {
 	var result = initialValue
 	for _, element := range iterable {
 		result = f(result, element)
