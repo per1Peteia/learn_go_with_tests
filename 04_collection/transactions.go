@@ -6,15 +6,25 @@ type Transaction struct {
 	Sum  float64
 }
 
-func BalanceFor(iterable []Transaction, name string) float64 {
-	adjustBalance := func(currBalance float64, t Transaction) float64 {
-		if t.From == name {
-			return currBalance - t.Sum
-		}
-		if t.To == name {
-			return currBalance + t.Sum
-		}
-		return currBalance
+type Account struct {
+	Name    string
+	Balance float64
+}
+
+func NewTransaction(from, to Account, sum float64) Transaction {
+	return Transaction{From: from.Name, To: to.Name, Sum: sum}
+}
+
+func NewBalanceFor(account Account, transactions []Transaction) Account {
+	return Reduce(transactions, applyTransaction, account)
+}
+
+func applyTransaction(account Account, transaction Transaction) Account {
+	if transaction.From == account.Name {
+		account.Balance -= transaction.Sum
 	}
-	return Reduce(iterable, adjustBalance, 0.0)
+	if transaction.To == account.Name {
+		account.Balance += transaction.Sum
+	}
+	return account
 }
