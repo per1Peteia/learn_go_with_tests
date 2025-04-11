@@ -6,6 +6,6 @@ import (
 )
 
 func main() {
-	handler := http.HandlerFunc(PlayerServer)
-	log.Fatal(http.ListenAndServe(":6969", handler))
+	srv := &PlayerServer{}
+	log.Fatal(http.ListenAndServe(":6969", srv))
 }
