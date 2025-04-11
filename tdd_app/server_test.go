@@ -16,6 +16,22 @@ func (s *StubPlayerStore) GetPlayerScore(name string) int {
 	return score
 }
 
+func TestStoreWins(t *testing.T) {
+	store := StubPlayerStore{
+		map[string]int{},
+	}
+	srv := &PlayerServer{&store}
+
+	t.Run("returns accepted on POST", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodPost, "/players/Pepper", nil)
+		res := httptest.NewRecorder()
+
+		srv.ServeHTTP(res, req)
+
+		assertStatus(t, res.Code, http.StatusAccepted)
+	})
+}
+
 func TestGETPlayers(t *testing.T) {
 	store := StubPlayerStore{
 		map[string]int{
@@ -25,7 +41,7 @@ func TestGETPlayers(t *testing.T) {
 	}
 	srv := &PlayerServer{&store}
 
-	t.Run("returns Player's score", func(t *testing.T) {
+	t.Run("returns some player's score", func(t *testing.T) {
 		request := newGetScoreRequest("Pepper")
 		response := httptest.NewRecorder()
 		srv.ServeHTTP(response, request)
@@ -33,6 +49,7 @@ func TestGETPlayers(t *testing.T) {
 		got := response.Body.String()
 		want := "20"
 
+		assertStatus(t, response.Code, http.StatusOK)
 		assertResponseBody(t, got, want)
 	})
 
@@ -44,7 +61,21 @@ func TestGETPlayers(t *testing.T) {
 		got := response.Body.String()
 		want := "10"
 
+		assertStatus(t, response.Code, http.StatusOK)
 		assertResponseBody(t, got, want)
+	})
+
+	t.Run("returns 404 on missing players", func(t *testing.T) {
+		req := newGetScoreRequest("Apollo")
+		res := httptest.NewRecorder()
+
+		srv.ServeHTTP(res, req)
+		got := res.Code
+		want := http.StatusNotFound
+
+		if got != want {
+			t.Errorf("got %d, want %d", got, want)
+		}
 	})
 }
 
@@ -57,5 +88,12 @@ func assertResponseBody(t testing.TB, got, want string) {
 	t.Helper()
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func assertStatus(t testing.TB, got, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("status code: got %d, want %d", got, want)
 	}
 }
