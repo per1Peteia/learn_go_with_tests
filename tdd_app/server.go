@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -8,12 +9,18 @@ import (
 
 type PlayerStore interface {
 	GetPlayerScore(name string) int
+	GetLeague() []Player
 	RecordWin(name string)
 }
 
 type PlayerServer struct {
 	store PlayerStore
 	http.Handler
+}
+
+type Player struct {
+	Name string `json:"Name"`
+	Wins int    `json:"Wins"`
 }
 
 func NewPlayerServer(store PlayerStore) *PlayerServer {
@@ -26,8 +33,11 @@ func NewPlayerServer(store PlayerStore) *PlayerServer {
 	return p
 }
 
+const jsonContentType = "application/json"
+
 func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("content-type", jsonContentType)
+	json.NewEncoder(w).Encode(p.store.GetLeague())
 }
 
 func (p *PlayerServer) playerHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,14 +63,4 @@ func (p *PlayerServer) showScore(w http.ResponseWriter, player string) {
 func (p *PlayerServer) processWin(w http.ResponseWriter, player string) {
 	p.store.RecordWin(player)
 	w.WriteHeader(http.StatusAccepted)
-}
-
-func GetPlayerScore(name string) string {
-	if name == "Pepper" {
-		return "20"
-	}
-	if name == "Floyd" {
-		return "10"
-	}
-	return ""
 }
