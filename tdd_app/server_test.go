@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -55,6 +56,16 @@ func TestLeague(t *testing.T) {
 		assertStatus(t, response.Code, http.StatusOK)
 		assertLeague(t, got, wantedLeague)
 	})
+}
+
+func getLeagueFromResponse(t testing.TB, body io.Reader) []Player {
+	t.Helper()
+	var league []Player
+	err := json.NewDecoder(body).Decode(&league)
+	if err != nil {
+		t.Fatalf("unable to parse response body %q into league struct: %v", body, err)
+	}
+	return league
 }
 
 func newLeagueRequest() *http.Request {
