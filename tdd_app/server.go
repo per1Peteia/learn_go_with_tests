@@ -9,7 +9,7 @@ import (
 
 type PlayerStore interface {
 	GetPlayerScore(name string) int
-	GetLeague() []Player
+	GetLeague() League
 	RecordWin(name string)
 }
 

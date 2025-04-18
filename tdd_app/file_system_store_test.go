@@ -1,14 +1,17 @@
 package main
 
 import (
-	"strings"
+	"io"
+	"os"
 	"testing"
 )
 
 func TestFileSystemStore(t *testing.T) {
-	db := strings.NewReader(`
+	db, cleanDb := createTempFile(t, `
 		[{"Name": "Cleo", "Wins": 10},
 		{"Name": "Chris", "Wins": 33}]`)
+	defer cleanDb()
+
 	store := FileSystemPlayerStore{db}
 
 	t.Run("get league", func(t *testing.T) {
@@ -24,9 +27,38 @@ func TestFileSystemStore(t *testing.T) {
 	t.Run("get player score", func(t *testing.T) {
 		got := store.GetPlayerScore("Chris")
 		want := 33
-
-		if got != want {
-			t.Errorf("got %d, want %d", got, want)
-		}
+		assertScoreEqual(t, got, want)
 	})
+
+	t.Run("record a player score", func(t *testing.T) {
+		store.RecordWin("Chris")
+		got := store.GetPlayerScore("Chris")
+		want := 34
+		assertScoreEqual(t, got, want)
+	})
+}
+
+func createTempFile(t testing.TB, initialData string) (io.ReadWriteSeeker, func()) {
+	t.Helper()
+
+	tmpFile, err := os.CreateTemp("", "db")
+	if err != nil {
+		t.Fatalf("error creating temporary file: %v", err)
+	}
+
+	tmpFile.Write([]byte(initialData))
+
+	rmvFile := func() {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+	}
+
+	return tmpFile, rmvFile
+}
+
+func assertScoreEqual(t testing.TB, got, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
 }
