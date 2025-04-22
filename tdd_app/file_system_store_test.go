@@ -15,16 +15,7 @@ func TestFileSystemStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("did expect no error but got: %v", err)
 	}
-
-	t.Run("get league", func(t *testing.T) {
-		got := store.GetLeague()
-		want := []Player{
-			{"Cleo", 10},
-			{"Chris", 33},
-		}
-
-		assertLeague(t, got, want)
-	})
+	assertNoError(t, err)
 
 	t.Run("get player score", func(t *testing.T) {
 		got := store.GetPlayerScore("Chris")
@@ -44,6 +35,15 @@ func TestFileSystemStore(t *testing.T) {
 		got := store.GetPlayerScore("Pepper")
 		want := 1
 		assertScoreEqual(t, got, want)
+	})
+
+	t.Run("return league sorted", func(t *testing.T) {
+		got := store.GetLeague()
+		want := League{{"Chris", 34}, {"Cleo", 10}, {"Pepper", 1}}
+		assertLeague(t, got, want)
+
+		got = store.GetLeague()
+		assertLeague(t, got, want)
 	})
 }
 
