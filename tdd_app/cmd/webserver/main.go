@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	poker "github.com/per1Peteia/learn_go_with_tests/tdd_app"
 	"log"
 	"net/http"
 	"os"
@@ -15,11 +16,11 @@ func main() {
 		log.Fatalf("problem opening %s %v", dbFileName, err)
 	}
 
-	store, err := NewFileSystemPlayerStore(db)
+	store, err := poker.NewFileSystemPlayerStore(db)
 	if err != nil {
 		log.Fatalf("could not create filesystem store: %v", err)
 	}
-	srv := NewPlayerServer(store)
+	srv := poker.NewPlayerServer(store)
 
 	fmt.Println("serving on port :6969")
 	if err := http.ListenAndServe(":6969", srv); err != nil {
