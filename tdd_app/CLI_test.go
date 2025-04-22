@@ -1,15 +1,28 @@
 package poker
 
 import (
+	"strings"
 	"testing"
 )
 
 func TestCLI(t *testing.T) {
-	playerStore := &StubPlayerStore{}
-	cli := &CLI{playerStore}
+	in := strings.NewReader("Chris wins\n")
+	store := &StubPlayerStore{}
+
+	cli := &CLI{store, in}
 	cli.PlayPoker()
 
-	if len(playerStore.winCalls) != 1 {
-		t.Fatal("expected a win call but didn't get any")
+	assertPlayerWin(t, store, "Chris")
+}
+
+func assertPlayerWin(t testing.TB, store *StubPlayerStore, winner string) {
+	t.Helper()
+
+	if len(store.winCalls) != 1 {
+		t.Fatalf("got %d calls to RecordWin want %d", len(store.winCalls), 1)
+	}
+
+	if store.winCalls[0] != winner {
+		t.Errorf("did not store correct winner got %q want %q", store.winCalls[0], winner)
 	}
 }
