@@ -47,6 +47,14 @@ func TestFileSystemStore(t *testing.T) {
 	})
 }
 
+func TestEmptyFileSystemStore(t *testing.T) {
+	db, cleanDB := createTempFile(t, "")
+	defer cleanDB()
+
+	_, err := NewFileSystemPlayerStore(db)
+	assertNoError(t, err)
+}
+
 func createTempFile(t testing.TB, initialData string) (*os.File, func()) {
 	t.Helper()
 
@@ -63,6 +71,13 @@ func createTempFile(t testing.TB, initialData string) (*os.File, func()) {
 	}
 
 	return tmpFile, rmvFile
+}
+
+func assertNoError(t testing.TB, got error) {
+	t.Helper()
+	if got != nil {
+		t.Errorf("expected no error but got one: %v", got)
+	}
 }
 
 func assertScoreEqual(t testing.TB, got, want int) {
