@@ -7,9 +7,12 @@ import (
 )
 
 func TestRecordingWinsAndRetrievingThem(t *testing.T) {
-	db, cleanDB := createTempFile(t, "")
+	db, cleanDB := createTempFile(t, "[]")
 	defer cleanDB()
-	store := NewFileSystemPlayerStore(db)
+	store, err := NewFileSystemPlayerStore(db)
+	if err != nil {
+		t.Fatalf("expected no error, but got: %v", err)
+	}
 	server := NewPlayerServer(store)
 	player := "Pepper"
 

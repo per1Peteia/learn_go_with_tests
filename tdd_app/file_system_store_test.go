@@ -11,7 +11,10 @@ func TestFileSystemStore(t *testing.T) {
 		{"Name": "Chris", "Wins": 33}]`)
 	defer cleanDb()
 
-	store := NewFileSystemPlayerStore(db)
+	store, err := NewFileSystemPlayerStore(db)
+	if err != nil {
+		t.Fatalf("did expect no error but got: %v", err)
+	}
 
 	t.Run("get league", func(t *testing.T) {
 		got := store.GetLeague()

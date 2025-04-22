@@ -15,7 +15,10 @@ func main() {
 		log.Fatalf("problem opening %s %v", dbFileName, err)
 	}
 
-	store := NewFileSystemPlayerStore(db)
+	store, err := NewFileSystemPlayerStore(db)
+	if err != nil {
+		log.Fatalf("could not create filesystem store: %v", err)
+	}
 	srv := NewPlayerServer(store)
 
 	fmt.Println("serving on port :6969")
