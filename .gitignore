@@ -1,1 +1,4 @@
 tdd_app/srv
+tdd_app/cmd/cli/main
+tdd_app/cmd/webserver/main
+game.db.json
