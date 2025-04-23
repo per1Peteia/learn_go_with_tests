@@ -6,23 +6,23 @@ import (
 )
 
 func TestCLI(t *testing.T) {
-	in := strings.NewReader("Chris wins\n")
-	store := &StubPlayerStore{}
+	t.Run("chris wins input", func(t *testing.T) {
+		in := strings.NewReader("Chris wins\n")
+		store := &StubPlayerStore{}
 
-	cli := &CLI{store, in}
-	cli.PlayPoker()
+		cli := NewCLI(store, in)
+		cli.PlayPoker()
 
-	assertPlayerWin(t, store, "Chris")
-}
+		AssertPlayerWin(t, store, "Chris")
+	})
 
-func assertPlayerWin(t testing.TB, store *StubPlayerStore, winner string) {
-	t.Helper()
+	t.Run("cleo wins input", func(t *testing.T) {
+		in := strings.NewReader("Cleo wins\n")
+		store := &StubPlayerStore{}
 
-	if len(store.winCalls) != 1 {
-		t.Fatalf("got %d calls to RecordWin want %d", len(store.winCalls), 1)
-	}
+		cli := NewCLI(store, in)
+		cli.PlayPoker()
 
-	if store.winCalls[0] != winner {
-		t.Errorf("did not store correct winner got %q want %q", store.winCalls[0], winner)
-	}
+		AssertPlayerWin(t, store, "Cleo")
+	})
 }
