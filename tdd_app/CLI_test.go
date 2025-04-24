@@ -10,7 +10,7 @@ import (
 
 func TestCLI(t *testing.T) {
 	t.Run("chris wins input", func(t *testing.T) {
-		in := strings.NewReader("Chris wins\n")
+		in := strings.NewReader("1\nChris wins\n")
 		store := &StubPlayerStore{}
 		var dummySpyAlerter = &SpyBlindAlerter{}
 		var dummyStdOut = bytes.Buffer{}
@@ -22,7 +22,7 @@ func TestCLI(t *testing.T) {
 	})
 
 	t.Run("cleo wins input", func(t *testing.T) {
-		in := strings.NewReader("Cleo wins\n")
+		in := strings.NewReader("1\nCleo wins\n")
 		store := &StubPlayerStore{}
 		var dummySpyAlerter = &SpyBlindAlerter{}
 		var dummyStdOut = bytes.Buffer{}
@@ -34,7 +34,7 @@ func TestCLI(t *testing.T) {
 	})
 
 	t.Run("schedules printing of blind values", func(t *testing.T) {
-		in := strings.NewReader("Chris wins\n")
+		in := strings.NewReader("5\nChris wins\n")
 		store := &StubPlayerStore{}
 		blindAlerter := &SpyBlindAlerter{}
 		var dummyStdOut = bytes.Buffer{}
@@ -69,18 +69,37 @@ func TestCLI(t *testing.T) {
 	})
 
 	t.Run("prompts for user input of player number", func(t *testing.T) {
-		var dummyBlindAlerter = &SpyBlindAlerter{}
 		var dummyPlayerStore = &StubPlayerStore{}
-		var dummyStdIn = &bytes.Buffer{}
 
-		stdout := &bytes.Buffer{}
-		NewCLI(dummyPlayerStore, dummyStdIn, stdout, dummyBlindAlerter).PlayPoker()
+		out := &bytes.Buffer{}
+		in := strings.NewReader("7\n")
+		alerter := &SpyBlindAlerter{}
 
-		got := stdout.String()
+		NewCLI(dummyPlayerStore, in, out, alerter).PlayPoker()
+
+		got := out.String()
 		want := PlayerPrompt
 
 		if got != want {
 			t.Errorf("got stdout %q, want %q", got, want)
+		}
+
+		cases := []scheduledAlert{
+			{0 * time.Second, 100},
+			{12 * time.Minute, 200},
+			{24 * time.Minute, 300},
+			{36 * time.Minute, 400},
+		}
+
+		for i, want := range cases {
+			t.Run(fmt.Sprint(want), func(t *testing.T) {
+				if len(alerter.alerts) <= i {
+					t.Fatalf("alert %d was not scheduled: %v", i, alerter.alerts)
+				}
+
+				got := alerter.alerts[i]
+				assertScheduledAlert(t, got, want)
+			})
 		}
 	})
 }
@@ -91,7 +110,7 @@ func assertScheduledAlert(t testing.TB, got, want scheduledAlert) {
 		t.Errorf("got amount %d, want %d", got.amount, want.amount)
 	}
 	if got.at != want.at {
-		t.Errorf("got time %v, want %d", got.at, want.at)
+		t.Errorf("got time %v, want %v", got.at, want.at)
 	}
 }
 
