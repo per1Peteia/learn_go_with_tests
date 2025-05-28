@@ -29,9 +29,10 @@ func TestGame(t *testing.T) {
 	})
 
 	t.Run("start game with 3 players and declare Ruth the winner", func(t *testing.T) {
-		game := &SpyGame{}
-		server := httptest.NewServer(mustMakePlayerServer(t, dummyPlayerStore, game))
 		winner := "Ruth"
+		wantedBlindAlert := "Blind is 100"
+		game := &SpyGame{blindAlert: []byte(wantedBlindAlert)}
+		server := httptest.NewServer(mustMakePlayerServer(t, dummyPlayerStore, game))
 		sock := mustMakeAConnection(t, "ws"+strings.TrimPrefix(server.URL, "http")+"/ws")
 
 		defer server.Close()
@@ -40,11 +41,36 @@ func TestGame(t *testing.T) {
 		writeSocketMessage(t, sock, "3")
 		writeSocketMessage(t, sock, winner)
 
-		time.Sleep(time.Millisecond * 10)
+		tenMS := time.Millisecond * 10
 		assertGameStartedWith(t, game, 3)
 		assertGameFinishedWith(t, game, winner)
+		within(t, tenMS, func() { assertSocketGotMsg(t, sock, wantedBlindAlert) })
 
 	})
+}
+
+func within(t testing.TB, d time.Duration, assert func()) {
+	t.Helper()
+
+	done := make(chan struct{}, 1)
+
+	go func() {
+		assert()
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-time.After(d):
+		t.Error("timed out")
+	case <-done:
+	}
+}
+
+func assertSocketGotMsg(t testing.TB, socket *websocket.Conn, want string) {
+	_, msg, _ := socket.ReadMessage()
+	if string(msg) != want {
+		t.Errorf("got %q, want %q", string(msg), want)
+	}
 }
 
 func writeSocketMessage(t testing.TB, socket *websocket.Conn, winner string) {

@@ -5,17 +5,22 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 )
 
 type SpyGame struct {
-	startedWith  int
-	finishedWith string
-	startCalled  bool
+	startedWith    int
+	startCalled    bool
+	finishedWith   string
+	finishedCalled bool
+	blindAlert     []byte
 }
 
-func (s *SpyGame) Start(numberOfPlayers int, alertsDestination io.Writer) {
+func (s *SpyGame) Start(numberOfPlayers int, out io.Writer) {
 	s.startCalled = true
 	s.startedWith = numberOfPlayers
+	out.Write(s.blindAlert)
+
 }
 
 func (s *SpyGame) Finish(winner string) {
@@ -79,8 +84,13 @@ func assertMessageSentToUser(t testing.TB, out *bytes.Buffer, msgs ...string) {
 
 func assertGameFinishedWith(t testing.TB, game *SpyGame, want string) {
 	t.Helper()
-	if game.finishedWith != want {
-		t.Errorf("expected Finish call with %q but got %q", want, game.finishedWith)
+
+	passed := retryUntil(time.Millisecond*500, func() bool {
+		return game.finishedWith == want
+	})
+
+	if !passed {
+		t.Errorf("expected winner %q, but got %q", want, game.finishedWith)
 	}
 }
 
@@ -93,7 +103,22 @@ func assertGameStarted(t testing.TB, game *SpyGame) {
 
 func assertGameStartedWith(t testing.TB, game *SpyGame, want int) {
 	t.Helper()
-	if game.startedWith != want {
-		t.Errorf("expected game to start with %d players but got %d", want, game.startedWith)
+
+	passed := retryUntil(time.Millisecond*500, func() bool {
+		return game.startedWith == want
+	})
+
+	if !passed {
+		t.Errorf("expected finish with %q, but got %q", want, game.startedWith)
 	}
+}
+
+func retryUntil(d time.Duration, f func() bool) bool {
+	deadline := time.Now().Add(d)
+	for time.Now().Before(deadline) {
+		if f() {
+			return true
+		}
+	}
+	return false
 }
