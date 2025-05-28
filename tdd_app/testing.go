@@ -1,9 +1,18 @@
 package poker
 
 import (
+	"bytes"
 	"net/http/httptest"
 	"reflect"
 	"testing"
+)
+
+var (
+	dummySpyAlerter  = &SpyBlindAlerter{}
+	dummyStdOut      = bytes.Buffer{}
+	dummyStdIn       = bytes.Buffer{}
+	dummyPlayerStore = &StubPlayerStore{}
+	dummyGame        = &SpyGame{}
 )
 
 type StubPlayerStore struct {

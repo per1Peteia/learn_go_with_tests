@@ -3,10 +3,13 @@ package poker
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"html/template"
+	"io"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/gorilla/websocket"
 )
 
 type PlayerStore interface {
@@ -16,9 +19,10 @@ type PlayerStore interface {
 }
 
 type PlayerServer struct {
-	store PlayerStore
-	http.Handler
+	store    PlayerStore
 	template *template.Template
+	game     Game
+	http.Handler
 }
 
 type Player struct {
@@ -28,7 +32,7 @@ type Player struct {
 
 const htmlTmplPath = "game.html"
 
-func NewPlayerServer(store PlayerStore) (*PlayerServer, error) {
+func NewPlayerServer(store PlayerStore, game Game) (*PlayerServer, error) {
 	p := new(PlayerServer)
 
 	tmpl, err := template.ParseFiles(htmlTmplPath)
@@ -38,6 +42,7 @@ func NewPlayerServer(store PlayerStore) (*PlayerServer, error) {
 
 	p.store = store
 	p.template = tmpl
+	p.game = game
 	router := http.NewServeMux()
 	router.Handle("/league", http.HandlerFunc(p.leagueHandler))
 	router.Handle("/players/", http.HandlerFunc(p.playerHandler))
@@ -55,10 +60,14 @@ var upgrader = websocket.Upgrader{
 }
 
 func (p *PlayerServer) socketHandler(w http.ResponseWriter, r *http.Request) {
+	conn := newPlayerServerSocket(w, r)
 
-	conn, _ := upgrader.Upgrade(w, r, nil)
-	_, winnerMsg, _ := conn.ReadMessage()
-	p.store.RecordWin(string(winnerMsg))
+	numberOfPlayersMsg := conn.WaitForMsg()
+	numberOfPlayers, _ := strconv.Atoi(string(numberOfPlayersMsg))
+	p.game.Start(numberOfPlayers, io.Discard)
+
+	winner := conn.WaitForMsg()
+	p.game.Finish(string(winner))
 }
 
 func (p *PlayerServer) gameHandler(w http.ResponseWriter, r *http.Request) {

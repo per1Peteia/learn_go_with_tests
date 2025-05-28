@@ -2,14 +2,10 @@ package poker
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 )
-
-var dummySpyAlerter = &SpyBlindAlerter{}
-var dummyStdOut = bytes.Buffer{}
-var dummyStdIn = bytes.Buffer{}
-var dummyPlayerStore = &StubPlayerStore{}
 
 type SpyGame struct {
 	startedWith  int
@@ -17,7 +13,7 @@ type SpyGame struct {
 	startCalled  bool
 }
 
-func (s *SpyGame) Start(numberOfPlayers int) {
+func (s *SpyGame) Start(numberOfPlayers int, alertsDestination io.Writer) {
 	s.startCalled = true
 	s.startedWith = numberOfPlayers
 }

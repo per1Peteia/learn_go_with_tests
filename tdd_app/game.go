@@ -1,8 +1,8 @@
 package poker
 
-import ()
+import "io"
 
 type Game interface {
-	Start(numberOfPlayers int)
+	Start(numberOfPlayers int, alertsDestination io.Writer)
 	Finish(winner string)
 }

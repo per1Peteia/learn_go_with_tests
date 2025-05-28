@@ -15,7 +15,7 @@ import (
 func TestGame(t *testing.T) {
 	t.Run("returns 200 on /game", func(t *testing.T) {
 		store := StubPlayerStore{}
-		server, err := NewPlayerServer(&store)
+		server, err := NewPlayerServer(&store, dummyGame)
 		if err != nil {
 			t.Fatalf("error creating server: %v", err)
 		}
@@ -28,20 +28,22 @@ func TestGame(t *testing.T) {
 		AssertStatus(t, response.Code, http.StatusOK)
 	})
 
-	t.Run("message over websocket is a game winner", func(t *testing.T) {
-		store := StubPlayerStore{}
-		server := httptest.NewServer(mustMakePlayerServer(t, &store))
+	t.Run("start game with 3 players and declare Ruth the winner", func(t *testing.T) {
+		game := &SpyGame{}
+		server := httptest.NewServer(mustMakePlayerServer(t, dummyPlayerStore, game))
 		winner := "Ruth"
+		sock := mustMakeAConnection(t, "ws"+strings.TrimPrefix(server.URL, "http")+"/ws")
+
 		defer server.Close()
+		defer sock.Close()
 
-		wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
-		ws := mustMakeAConnection(t, wsURL)
-		defer ws.Close()
-
-		writeSocketMessage(t, ws, winner)
+		writeSocketMessage(t, sock, "3")
+		writeSocketMessage(t, sock, winner)
 
 		time.Sleep(time.Millisecond * 10)
-		AssertPlayerWin(t, &store, winner)
+		assertGameStartedWith(t, game, 3)
+		assertGameFinishedWith(t, game, winner)
+
 	})
 }
 
@@ -61,9 +63,9 @@ func mustMakeAConnection(t testing.TB, url string) *websocket.Conn {
 	return ws
 }
 
-func mustMakePlayerServer(t testing.TB, p *StubPlayerStore) *PlayerServer {
+func mustMakePlayerServer(t testing.TB, p *StubPlayerStore, g *SpyGame) *PlayerServer {
 	t.Helper()
-	server, err := NewPlayerServer(p)
+	server, err := NewPlayerServer(p, g)
 	if err != nil {
 		t.Fatalf("error creating server: %v", err)
 	}
@@ -82,7 +84,7 @@ func TestLeague(t *testing.T) {
 		{"Tiest", 14},
 	}
 	store := StubPlayerStore{nil, nil, wantedLeague}
-	server, _ := NewPlayerServer(&store)
+	server, _ := NewPlayerServer(&store, dummyGame)
 
 	t.Run("returns 200 on /league", func(t *testing.T) {
 		request := newLeagueRequest()
@@ -117,7 +119,7 @@ func TestStoreWins(t *testing.T) {
 	store := StubPlayerStore{
 		scores: map[string]int{},
 	}
-	srv, _ := NewPlayerServer(&store)
+	srv, _ := NewPlayerServer(&store, dummyGame)
 
 	t.Run("returns accepted on POST", func(t *testing.T) {
 		player := "Pepper"
@@ -151,7 +153,7 @@ func TestGETPlayers(t *testing.T) {
 			"Floyd":  10,
 		},
 	}
-	srv, _ := NewPlayerServer(&store)
+	srv, _ := NewPlayerServer(&store, dummyGame)
 
 	t.Run("returns some player's score", func(t *testing.T) {
 		request := newGetScoreRequest("Pepper")
