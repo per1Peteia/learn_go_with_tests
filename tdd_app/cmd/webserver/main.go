@@ -16,7 +16,10 @@ func main() {
 	}
 	defer closeFunc()
 
-	srv := poker.NewPlayerServer(store)
+	srv, err := poker.NewPlayerServer(store)
+	if err != nil {
+		log.Fatalf("error creating new PlayerServer: %v", err)
+	}
 
 	fmt.Println("serving on port :6969")
 	if err := http.ListenAndServe(":6969", srv); err != nil {

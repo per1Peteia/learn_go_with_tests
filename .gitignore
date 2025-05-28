@@ -2,3 +2,6 @@ tdd_app/srv
 tdd_app/cmd/cli/main
 tdd_app/cmd/webserver/main
 game.db.json
+tdd_app/main
+tdd_app/cmd/webserver/srv
+whereami.md

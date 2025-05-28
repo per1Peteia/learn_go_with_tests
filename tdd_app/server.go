@@ -3,6 +3,8 @@ package poker
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
+	"html/template"
 	"net/http"
 	"strings"
 )
@@ -16,6 +18,7 @@ type PlayerStore interface {
 type PlayerServer struct {
 	store PlayerStore
 	http.Handler
+	template *template.Template
 }
 
 type Player struct {
@@ -23,17 +26,47 @@ type Player struct {
 	Wins int    `json:"Wins"`
 }
 
-func NewPlayerServer(store PlayerStore) *PlayerServer {
+const htmlTmplPath = "game.html"
+
+func NewPlayerServer(store PlayerStore) (*PlayerServer, error) {
 	p := new(PlayerServer)
+
+	tmpl, err := template.ParseFiles(htmlTmplPath)
+	if err != nil {
+		return nil, fmt.Errorf("problem opening %s: %v", htmlTmplPath, err)
+	}
+
 	p.store = store
+	p.template = tmpl
 	router := http.NewServeMux()
 	router.Handle("/league", http.HandlerFunc(p.leagueHandler))
 	router.Handle("/players/", http.HandlerFunc(p.playerHandler))
+	router.Handle("/game", http.HandlerFunc(p.gameHandler))
+	router.Handle("/ws", http.HandlerFunc(p.socketHandler))
 	p.Handler = router
-	return p
+	return p, nil
 }
 
 const jsonContentType = "application/json"
+
+var upgrader = websocket.Upgrader{
+	WriteBufferSize: 1024,
+	ReadBufferSize:  1024,
+}
+
+func (p *PlayerServer) socketHandler(w http.ResponseWriter, r *http.Request) {
+
+	conn, _ := upgrader.Upgrade(w, r, nil)
+	_, winnerMsg, _ := conn.ReadMessage()
+	p.store.RecordWin(string(winnerMsg))
+}
+
+func (p *PlayerServer) gameHandler(w http.ResponseWriter, r *http.Request) {
+	err := p.template.Execute(w, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error executing html template: %s", err.Error()), http.StatusInternalServerError)
+	}
+}
 
 func (p *PlayerServer) leagueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", jsonContentType)
